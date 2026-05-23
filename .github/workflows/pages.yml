@@ -20,24 +20,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      HAS_PAGES_TOKEN: ${{ secrets.PAGES_TOKEN != '' }}
       TRUNK_VERSION: "0.21.14"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configure Pages with enablement
-        if: github.event_name != 'pull_request' && env.HAS_PAGES_TOKEN == 'true'
-        id: pages_enablement
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-          token: ${{ secrets.PAGES_TOKEN }}
-
-      - name: Configure Pages
-        if: github.event_name != 'pull_request' && env.HAS_PAGES_TOKEN != 'true'
-        id: pages
-        uses: actions/configure-pages@v5
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -67,6 +53,15 @@ jobs:
       - name: Check workspace
         run: cargo check --workspace
 
+      - name: Set public base path
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REPOSITORY#*/}" == *.github.io ]]; then
+            echo "PUBLIC_BASE=" >> "${GITHUB_ENV}"
+          else
+            echo "PUBLIC_BASE=/${GITHUB_REPOSITORY#*/}" >> "${GITHUB_ENV}"
+          fi
+
       - name: Prepare dashboard
         run: mkdir -p public
 
@@ -76,14 +71,10 @@ jobs:
       - name: Build WFC visualizer
         working-directory: wfc-road-visualizer
         run: trunk build --release --public-url "${PUBLIC_BASE}/wfc-road-visualizer/" --dist ../public/wfc-road-visualizer
-        env:
-          PUBLIC_BASE: ${{ github.event_name == 'pull_request' && '/showcase' || steps.pages_enablement.outputs.base_path || steps.pages.outputs.base_path }}
 
       - name: Build search index visualizer
         working-directory: search-index-visualizer
         run: trunk build --release --public-url "${PUBLIC_BASE}/search-index-visualizer/" --dist ../public/search-index-visualizer
-        env:
-          PUBLIC_BASE: ${{ github.event_name == 'pull_request' && '/showcase' || steps.pages_enablement.outputs.base_path || steps.pages.outputs.base_path }}
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
