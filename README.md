@@ -53,4 +53,4 @@ trunk build --release --public-url /showcase/
 
 ## Deployment
 
-GitHub Actions で `main` への push 時に GitHub Pages へデプロイします。Pages が未有効の場合、`.github/workflows/pages.yml` は `actions/configure-pages` の `enablement` で有効化を試みます。初回だけ `repo` scope または Pages write permission を持つ token を `PAGES_TOKEN` secret に設定してください。すでに Pages が有効なら通常の `GITHUB_TOKEN` で動作します。新しい visualizer を公開対象にする場合は、ワークフローと公開ページのリンク一覧も更新します。
+GitHub Actions で `main` への push 時に GitHub Pages へデプロイします。`main` 向け PR では check と Trunk build だけを実行し、deploy は行いません。Pages が未有効の場合、`.github/workflows/pages.yml` は `actions/configure-pages` の `enablement` で有効化を試みます。初回だけ `repo` scope または Pages write permission を持つ token を `PAGES_TOKEN` secret に設定してください。すでに Pages が有効なら通常の `GITHUB_TOKEN` で動作します。新しい visualizer を公開対象にする場合は、ワークフローと公開ページのリンク一覧も更新します。

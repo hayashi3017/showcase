@@ -3,6 +3,8 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Pages
+        if: github.event_name != 'pull_request'
         id: pages
         uses: actions/configure-pages@v5
         with:
@@ -41,14 +44,18 @@ jobs:
 
       - name: Build web app
         working-directory: wfc-road-visualizer
-        run: trunk build --release --public-url "${{ steps.pages.outputs.base_path }}/"
+        run: trunk build --release --public-url "${PUBLIC_URL}"
+        env:
+          PUBLIC_URL: ${{ github.event_name == 'pull_request' && '/showcase/' || format('{0}/', steps.pages.outputs.base_path) }}
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: wfc-road-visualizer/dist
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:
