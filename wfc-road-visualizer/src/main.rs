@@ -1,8 +1,6 @@
 use std::collections::VecDeque;
 
-use eframe::egui::{
-    self, Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Vec2,
-};
+use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Vec2};
 
 const N: usize = 0;
 const E: usize = 1;
@@ -13,10 +11,10 @@ const DX: [isize; 4] = [0, 1, 0, -1];
 const DY: [isize; 4] = [-1, 0, 1, 0];
 const OPPOSITE: [usize; 4] = [S, W, N, E];
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1200.0, 800.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1200.0, 800.0]),
         ..Default::default()
     };
 
@@ -25,6 +23,30 @@ fn main() -> eframe::Result<()> {
         native_options,
         Box::new(|_cc| Ok(Box::new(WfcApp::default()))),
     )
+}
+
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use eframe::{wasm_bindgen::JsCast as _, web_sys};
+
+    eframe::WebLogger::init(log::LevelFilter::Info).ok();
+
+    wasm_bindgen_futures::spawn_local(async {
+        let canvas = web_sys::window()
+            .and_then(|window| window.document())
+            .and_then(|document| document.get_element_by_id("wfc-road-visualizer"))
+            .and_then(|element| element.dyn_into::<web_sys::HtmlCanvasElement>().ok())
+            .expect("missing #wfc-road-visualizer canvas");
+
+        eframe::WebRunner::new()
+            .start(
+                canvas,
+                eframe::WebOptions::default(),
+                Box::new(|_cc| Ok(Box::new(WfcApp::default()))),
+            )
+            .await
+            .expect("failed to start eframe web app");
+    });
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -188,11 +210,7 @@ impl Wfc {
         Ok(changed)
     }
 
-    fn seed_some_roads(
-        &mut self,
-        rng: &mut Rng,
-        count: usize,
-    ) -> Result<Vec<usize>, String> {
+    fn seed_some_roads(&mut self, rng: &mut Rng, count: usize) -> Result<Vec<usize>, String> {
         if self.width < 3 || self.height < 3 || count == 0 {
             return Ok(Vec::new());
         }
@@ -201,14 +219,8 @@ impl Wfc {
             5u8,  // vertical
             10u8, // horizontal
             3u8,  // corner
-            6u8,
-            9u8,
-            12u8,
-            7u8,  // T
-            11u8,
-            13u8,
-            14u8,
-            15u8, // cross
+            6u8, 9u8, 12u8, 7u8, // T
+            11u8, 13u8, 14u8, 15u8, // cross
         ];
 
         let mut all_changed = Vec::new();
@@ -280,10 +292,7 @@ impl Wfc {
         })
     }
 
-    fn propagate(
-        &mut self,
-        mut queue: VecDeque<(usize, usize)>,
-    ) -> Result<Vec<usize>, String> {
+    fn propagate(&mut self, mut queue: VecDeque<(usize, usize)>) -> Result<Vec<usize>, String> {
         let mut changed = Vec::new();
 
         while let Some((x, y)) = queue.pop_front() {
@@ -296,16 +305,12 @@ impl Wfc {
                 };
 
                 let neighbor_idx = self.index(nx, ny);
-                let allowed_for_neighbor =
-                    self.allowed_neighbors(possible_here, dir);
+                let allowed_for_neighbor = self.allowed_neighbors(possible_here, dir);
 
-                let next_possible =
-                    self.cells[neighbor_idx] & allowed_for_neighbor;
+                let next_possible = self.cells[neighbor_idx] & allowed_for_neighbor;
 
                 if next_possible == 0 {
-                    return Err(format!(
-                        "contradiction: ({nx}, {ny}) has no possible tiles"
-                    ));
+                    return Err(format!("contradiction: ({nx}, {ny}) has no possible tiles"));
                 }
 
                 if next_possible != self.cells[neighbor_idx] {
@@ -566,8 +571,7 @@ impl WfcApp {
             self.wfc.height as f32 * self.cell_size,
         );
 
-        let (response, painter) =
-            ui.allocate_painter(desired_size, Sense::hover());
+        let (response, painter) = ui.allocate_painter(desired_size, Sense::hover());
 
         let origin = response.rect.min;
 
@@ -580,10 +584,7 @@ impl WfcApp {
                     origin.y + y as f32 * self.cell_size,
                 );
 
-                let rect = Rect::from_min_size(
-                    min,
-                    Vec2::new(self.cell_size, self.cell_size),
-                );
+                let rect = Rect::from_min_size(min, Vec2::new(self.cell_size, self.cell_size));
 
                 self.draw_cell(&painter, rect, idx);
             }
@@ -629,37 +630,22 @@ impl WfcApp {
         }
 
         let center = rect.center();
-        let stroke = Stroke::new(
-            (self.cell_size * 0.16).max(2.0),
-            Color32::WHITE,
-        );
+        let stroke = Stroke::new((self.cell_size * 0.16).max(2.0), Color32::WHITE);
 
         if edge(mask, N) == 1 {
-            painter.line_segment(
-                [center, Pos2::new(center.x, rect.top())],
-                stroke,
-            );
+            painter.line_segment([center, Pos2::new(center.x, rect.top())], stroke);
         }
 
         if edge(mask, E) == 1 {
-            painter.line_segment(
-                [center, Pos2::new(rect.right(), center.y)],
-                stroke,
-            );
+            painter.line_segment([center, Pos2::new(rect.right(), center.y)], stroke);
         }
 
         if edge(mask, S) == 1 {
-            painter.line_segment(
-                [center, Pos2::new(center.x, rect.bottom())],
-                stroke,
-            );
+            painter.line_segment([center, Pos2::new(center.x, rect.bottom())], stroke);
         }
 
         if edge(mask, W) == 1 {
-            painter.line_segment(
-                [center, Pos2::new(rect.left(), center.y)],
-                stroke,
-            );
+            painter.line_segment([center, Pos2::new(rect.left(), center.y)], stroke);
         }
     }
 }
@@ -713,10 +699,7 @@ impl eframe::App for WfcApp {
 
                 ui.checkbox(&mut self.auto, "Auto");
 
-                ui.add(
-                    egui::Slider::new(&mut self.steps_per_frame, 1..=200)
-                        .text("steps / frame"),
-                );
+                ui.add(egui::Slider::new(&mut self.steps_per_frame, 1..=200).text("steps / frame"));
 
                 if ui.button("Run to end").clicked() {
                     self.run_to_end();
@@ -746,10 +729,7 @@ impl eframe::App for WfcApp {
                     .changed();
 
                 should_reset |= ui
-                    .add(
-                        egui::Slider::new(&mut self.cell_size, 6.0..=32.0)
-                            .text("cell size"),
-                    )
+                    .add(egui::Slider::new(&mut self.cell_size, 6.0..=32.0).text("cell size"))
                     .changed();
 
                 ui.horizontal(|ui| {
