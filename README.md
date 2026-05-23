@@ -74,4 +74,4 @@ trunk build --release --public-url /showcase/wfc-road-visualizer/
 
 ## Deployment
 
-GitHub Actions で `main` への push 時に GitHub Pages へデプロイします。`/` は `site/index.html` のダッシュボード、各 visualizer は `/wfc-road-visualizer/` などの個別パスで公開します。`main` 向け PR では check と Trunk build だけを実行し、deploy は行いません。Pages の source はリポジトリ設定で **GitHub Actions** を選択してください。新しい visualizer を公開対象にする場合は、ワークフローと公開ページのリンク一覧も更新します。
+GitHub Actions で `main` への push 時に GitHub Pages へデプロイします。`/` は `site/index.html` のダッシュボード、各 visualizer は `/wfc-road-visualizer/` などの個別パスで公開します。`main` 向け PR では check と Trunk build だけを実行し、deploy は行いません。Pages の source はリポジトリ設定で **GitHub Actions** を選択してください。Actions の workflow permissions は write 権限を許可し、deploy job が `pages: write` と `id-token: write` を取得できる状態にしてください。新しい visualizer を公開対象にする場合は、ワークフローと公開ページのリンク一覧も更新します。
