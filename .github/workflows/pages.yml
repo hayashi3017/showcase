@@ -24,6 +24,9 @@ jobs:
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
+          token: ${{ secrets.PAGES_TOKEN || github.token }}
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
