@@ -105,6 +105,8 @@ impl Analyzer {
         let mut ascii_buf = String::new();
         let mut cjk_buf = String::new();
 
+        // ASCII は単語単位、日本語/CJK は連続文字列として別々に貯める。
+        // 文字種が切り替わった時点で flush し、"Rust検索" のような混在文字列も扱う。
         for c in text.chars().flat_map(|c| c.to_lowercase()) {
             if c.is_ascii_alphanumeric() {
                 Self::flush_cjk(&mut tokens, &mut cjk_buf, self.cjk_ngram);
@@ -140,6 +142,8 @@ impl Analyzer {
         if chars.len() <= n {
             tokens.push(chars.iter().copied().collect::<String>());
         } else {
+            // 外部形態素解析を使わない代わりに、全文 token と n-gram を併用する。
+            // 全文 token は完全一致、n-gram は部分一致を拾う役割を持つ。
             tokens.push(chars.iter().copied().collect::<String>());
 
             for window in chars.windows(n) {
@@ -174,6 +178,8 @@ impl InvertedIndex {
         let mut per_doc_tf: Vec<HashMap<String, usize>> = Vec::with_capacity(docs.len());
         let mut document_frequency: HashMap<String, usize> = HashMap::new();
 
+        // 1 pass 目では文書ごとの TF と、term を含む文書数 DF を集計する。
+        // DF は同じ文書内で何回出ても 1 と数えるため、unique_terms を作ってから加算する。
         for doc in &docs {
             let terms = analyzer.analyze(&doc.searchable_text());
             let tf = count_terms(terms);
@@ -187,6 +193,8 @@ impl InvertedIndex {
         }
 
         let n_docs = docs.len() as f64;
+        // smoothing 付き IDF。全体でよく出る term は 1 に近く、
+        // 少数文書にしか出ない term ほど大きくなる。
         let idf: HashMap<String, f64> = document_frequency
             .into_iter()
             .map(|(term, df)| {
@@ -198,6 +206,8 @@ impl InvertedIndex {
 
         let mut postings: HashMap<String, Vec<Posting>> = HashMap::new();
 
+        // 2 pass 目で TF-IDF 文書ベクトルを作る。
+        // L2 正規化してから posting に入れるため、検索時の内積が cosine similarity になる。
         for (doc_index, tf) in per_doc_tf.iter().enumerate() {
             let mut raw_weights = Vec::with_capacity(tf.len());
             let mut norm_sq = 0.0;
@@ -235,6 +245,8 @@ impl InvertedIndex {
     }
 
     pub fn search(&self, query: &str, limit: usize) -> Vec<SearchResult> {
+        // クエリも文書と同じ analyzer / IDF / TF 重みでベクトル化する。
+        // インデックスに存在しない term は posting がないので、ランキングには寄与しない。
         let query_tf = count_terms(self.analyzer.analyze(query));
 
         if query_tf.is_empty() {
@@ -262,6 +274,8 @@ impl InvertedIndex {
 
         let mut contributions: HashMap<usize, Vec<TermContribution>> = HashMap::new();
 
+        // 転置インデックスの利点は、クエリ term を含む文書だけを走査できること。
+        // term ごとの積を保存しておくと、UI でスコアの内訳をそのまま表示できる。
         for (term, raw_weight) in query_raw_weights {
             let query_weight = raw_weight / query_norm;
 
@@ -335,6 +349,7 @@ impl InvertedIndex {
     }
 
     fn tf_weight(count: usize) -> f64 {
+        // 生頻度をそのまま使うと長い文書や反復語が強くなりすぎるため、対数で圧縮する。
         1.0 + (count as f64).ln()
     }
 }

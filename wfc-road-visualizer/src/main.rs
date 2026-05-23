@@ -116,7 +116,13 @@ struct Wfc {
     width: usize,
     height: usize,
     tiles: Vec<Tile>,
+
+    // compatible[tile][dir] は、その tile の dir 側に置ける隣接 tile 集合。
+    // collapse のたびに全 tile 組み合わせを調べる代わりに、ここで事前計算する。
     compatible: Vec<[u64; 4]>,
+
+    // 各 cell は「まだ置ける tile の集合」を bitset として持つ。
+    // 候補が 1 bit になった cell が collapse 済み。
     cells: Vec<u64>,
     #[allow(dead_code)]
     all_tiles_mask: u64,
@@ -135,9 +141,13 @@ impl Wfc {
         let tiles = road_tiles();
         assert!(tiles.len() <= 64);
 
+        // 16 種類の道路 mask を u64 の下位 bit に割り当てる。
+        // bitset にすると候補削除が AND だけで済み、伝播処理を単純に保てる。
         let all_tiles_mask = (1u64 << tiles.len()) - 1;
         let mut compatible = vec![[0u64; 4]; tiles.len()];
 
+        // 隣接制約は「接している辺の道路有無が一致すること」だけ。
+        // ここで全 tile ペアを方向ごとに比較し、後続の propagate で再利用する。
         for (a_idx, a) in tiles.iter().enumerate() {
             for dir in 0..4 {
                 let mut allowed = 0u64;
@@ -174,6 +184,8 @@ impl Wfc {
         let mut queue = VecDeque::new();
         let mut changed = Vec::new();
 
+        // 外周セルでは盤面の外側に道路が伸びる tile を禁止する。
+        // 先に境界を絞ってから伝播すると、内部セルにも閉じた道路網の制約が波及する。
         for y in 0..self.height {
             for x in 0..self.width {
                 let idx = self.index(x, y);
@@ -215,6 +227,8 @@ impl Wfc {
             return Ok(Vec::new());
         }
 
+        // 空白 tile は重みが高いため、完全ランダムだと道路が少ない解になりやすい。
+        // 内部に道路 tile を少数固定し、その制約を伝播させて見た目の起点を作る。
         let road_masks = [
             5u8,  // vertical
             10u8, // horizontal
@@ -255,6 +269,8 @@ impl Wfc {
     }
 
     fn step(&mut self, rng: &mut Rng) -> Result<StepReport, String> {
+        // WFC の基本戦略: 最も候補数が少ない未確定セルを選び、矛盾しにくい場所から決める。
+        // 同じ entropy の候補が複数ある場合だけ乱択し、生成結果に揺らぎを持たせる。
         let Some(cell_index) = self.pick_lowest_entropy_cell(rng) else {
             return Ok(StepReport {
                 collapsed: None,
@@ -295,6 +311,8 @@ impl Wfc {
     fn propagate(&mut self, mut queue: VecDeque<(usize, usize)>) -> Result<Vec<usize>, String> {
         let mut changed = Vec::new();
 
+        // 変更されたセルだけを queue に入れる AC-3 風の伝播。
+        // あるセルの候補集合が狭まると、隣接セルで許される候補も AND で狭まる。
         while let Some((x, y)) = queue.pop_front() {
             let idx = self.index(x, y);
             let possible_here = self.cells[idx];
@@ -328,6 +346,8 @@ impl Wfc {
         let mut best_count = u32::MAX;
         let mut candidates = Vec::new();
 
+        // entropy はここでは候補 tile 数そのもの。
+        // 候補が 0 の矛盾セルは step/propagate 側で検出し、候補 1 は確定済みとして飛ばす。
         for (i, &possible) in self.cells.iter().enumerate() {
             let count = possible.count_ones();
 
@@ -412,6 +432,8 @@ impl Wfc {
 }
 
 fn road_tiles() -> Vec<Tile> {
+    // 4bit mask は N/E/S/W の道路接続を表す。
+    // 0..16 を全部使うことで、直線、角、T 字、十字、空白を同じ制約モデルで扱う。
     (0u8..16)
         .map(|mask| Tile {
             mask,
@@ -421,6 +443,8 @@ fn road_tiles() -> Vec<Tile> {
 }
 
 fn road_weight(mask: u8) -> u32 {
+    // 見た目が道路だらけにならないよう、空白と直線をやや出やすくする。
+    // 重みは collapse 時の選択確率だけに効き、隣接制約そのものは変えない。
     match mask.count_ones() {
         0 => 8,
         1 => 1,
