@@ -2,24 +2,26 @@
 
 ## Project Structure & Module Organization
 
-This repository is a Cargo workspace with one member crate:
+This repository is a Cargo workspace for `egui` / `eframe` algorithm visualizers:
 
 - `Cargo.toml` defines the workspace and lists `wfc-road-visualizer`.
 - `Cargo.lock` pins dependency versions and should be committed for reproducible builds.
 - `wfc-road-visualizer/Cargo.toml` defines the Rust 2021 GUI crate using `eframe` and `egui`.
 - `wfc-road-visualizer/src/main.rs` contains the entry point, WFC model, random selection logic, and UI code.
+- `docs/adding-visualizer.md` describes how to add future visualizer crates.
 - `target/` is Cargo build output and should not be edited or committed.
 
-Add new Rust modules under `wfc-road-visualizer/src/` and declare them from `main.rs` or a future `lib.rs`.
+Add new algorithms as `<algorithm>-visualizer` workspace members unless they are tightly coupled to an existing crate. Keep algorithm logic, UI state, and rendering code separated enough to test deterministic behavior.
 
 ## Build, Test, and Development Commands
 
-- `cargo run -p wfc-road-visualizer` launches the desktop visualizer locally.
+- `cargo run -p wfc-road-visualizer` launches the current desktop visualizer locally.
 - `cargo check` type-checks the whole workspace quickly.
 - `cargo build` compiles the workspace in debug mode.
 - `cargo test` runs all unit and integration tests once tests are added.
 - `cargo fmt` formats Rust code using rustfmt.
 - `cargo clippy --all-targets --all-features` runs additional lint checks.
+- `trunk build --release --public-url /showcase/` from a visualizer crate checks its GitHub Pages build.
 
 If an environment workaround is added, include a brief comment with the observed failure and rationale, such as avoiding cross-device rename or hardlink errors.
 
@@ -31,9 +33,9 @@ Run `cargo fmt` before submitting changes. Treat `cargo clippy --all-targets --a
 
 ## Testing Guidelines
 
-There are currently no tests in the checkout. Add unit tests near the code they exercise using `#[cfg(test)] mod tests`, especially for deterministic WFC behavior such as compatibility calculation, boundary constraints, propagation, and random selection edge cases. Use integration tests under `wfc-road-visualizer/tests/` when behavior spans public crate boundaries.
+There are currently no tests in the checkout. Add unit tests near the code they exercise using `#[cfg(test)] mod tests`, especially for deterministic algorithm behavior such as state transitions, constraints, search steps, and random selection edge cases. Use integration tests under `<crate>/tests/` when behavior spans public crate boundaries.
 
-Run `cargo test` before opening a pull request. For UI-only changes, also run `cargo run -p wfc-road-visualizer` and manually verify startup and interaction.
+Run `cargo test` before opening a pull request. For UI-only changes, also run the relevant `cargo run -p <crate>` command and manually verify startup and interaction.
 
 ## Commit & Pull Request Guidelines
 
