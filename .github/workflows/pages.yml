@@ -19,12 +19,15 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_PAGES_TOKEN: ${{ secrets.PAGES_TOKEN != '' }}
+      TRUNK_VERSION: "0.21.14"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Configure Pages with enablement
-        if: github.event_name != 'pull_request' && secrets.PAGES_TOKEN != ''
+        if: github.event_name != 'pull_request' && env.HAS_PAGES_TOKEN == 'true'
         id: pages_enablement
         uses: actions/configure-pages@v5
         with:
@@ -32,7 +35,7 @@ jobs:
           token: ${{ secrets.PAGES_TOKEN }}
 
       - name: Configure Pages
-        if: github.event_name != 'pull_request' && secrets.PAGES_TOKEN == ''
+        if: github.event_name != 'pull_request' && env.HAS_PAGES_TOKEN != 'true'
         id: pages
         uses: actions/configure-pages@v5
 
@@ -41,8 +44,25 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache Trunk binary
+        id: cache-trunk
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/trunk
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+          key: trunk-${{ runner.os }}-${{ env.TRUNK_VERSION }}
+
       - name: Install Trunk
-        run: cargo install trunk --locked
+        if: steps.cache-trunk.outputs.cache-hit != 'true'
+        run: cargo install trunk --version "${TRUNK_VERSION}" --locked
+
+      - name: Check Trunk
+        run: trunk --version
 
       - name: Check workspace
         run: cargo check --workspace
