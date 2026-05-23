@@ -6,6 +6,8 @@ This repository is a Cargo workspace for `egui` / `eframe` algorithm visualizers
 
 - `Cargo.toml` defines the workspace and lists `wfc-road-visualizer`.
 - `Cargo.lock` pins dependency versions and should be committed for reproducible builds.
+- `site/index.html` is the GitHub Pages dashboard linking to each visualizer path.
+- `search-index-visualizer/` contains the inverted-index search visualizer.
 - `wfc-road-visualizer/Cargo.toml` defines the Rust 2021 GUI crate using `eframe` and `egui`.
 - `wfc-road-visualizer/src/main.rs` contains the entry point, WFC model, random selection logic, and UI code.
 - `docs/adding-visualizer.md` describes how to add future visualizer crates.
@@ -21,7 +23,7 @@ Add new algorithms as `<algorithm>-visualizer` workspace members unless they are
 - `cargo test` runs all unit and integration tests once tests are added.
 - `cargo fmt` formats Rust code using rustfmt.
 - `cargo clippy --all-targets --all-features` runs additional lint checks.
-- `trunk build --release --public-url /showcase/` from a visualizer crate checks its GitHub Pages build.
+- `trunk build --release --public-url /showcase/<crate>/` from a visualizer crate checks its GitHub Pages build.
 
 If an environment workaround is added, include a brief comment with the observed failure and rationale, such as avoiding cross-device rename or hardlink errors.
 

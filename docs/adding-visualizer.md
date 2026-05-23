@@ -108,7 +108,7 @@ Web 配布物は対象クレートで確認します。
 
 ```sh
 cd <algorithm>-visualizer
-trunk build --release --public-url /showcase/
+trunk build --release --public-url /showcase/<algorithm>-visualizer/
 ```
 
 ## Documentation Updates
@@ -116,7 +116,7 @@ trunk build --release --public-url /showcase/
 新しい可視化を追加したら、次も更新します。
 
 - `README.md` の Current Visualizers
-- GitHub Pages で公開する対象一覧やリンク
+- `site/index.html` のダッシュボードリンク
 - `.github/workflows/pages.yml` の build 対象
 - 操作方法が特殊な場合はクレート内 README または `docs/` の補足
 
@@ -125,7 +125,7 @@ trunk build --release --public-url /showcase/
 GitHub Pages で複数 visualizer を公開する場合は、各クレートを Trunk でビルドし、成果物を 1 つの Pages artifact にまとめます。追加時は次を確認してください。
 
 - 生成先の `dist/` は `.gitignore` に追加し、コミットしない。
-- `--public-url` は GitHub Pages の base path に合わせる。
+- `--public-url` は GitHub Pages の base path と visualizer のサブパスに合わせる。
 - 公開トップページから新しい visualizer へ移動できるリンクを用意する。
 - CI で `cargo check --workspace` と対象クレートの Trunk build が通る。
 

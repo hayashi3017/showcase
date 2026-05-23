@@ -23,13 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure Pages
-        if: github.event_name != 'pull_request'
-        id: pages
+      - name: Configure Pages with enablement
+        if: github.event_name != 'pull_request' && secrets.PAGES_TOKEN != ''
+        id: pages_enablement
         uses: actions/configure-pages@v5
         with:
           enablement: true
-          token: ${{ secrets.PAGES_TOKEN || github.token }}
+          token: ${{ secrets.PAGES_TOKEN }}
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request' && secrets.PAGES_TOKEN == ''
+        id: pages
+        uses: actions/configure-pages@v5
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,17 +47,29 @@ jobs:
       - name: Check workspace
         run: cargo check --workspace
 
-      - name: Build web app
+      - name: Prepare dashboard
+        run: mkdir -p public
+
+      - name: Copy dashboard
+        run: cp site/index.html public/index.html
+
+      - name: Build WFC visualizer
         working-directory: wfc-road-visualizer
-        run: trunk build --release --public-url "${PUBLIC_URL}"
+        run: trunk build --release --public-url "${PUBLIC_BASE}/wfc-road-visualizer/" --dist ../public/wfc-road-visualizer
         env:
-          PUBLIC_URL: ${{ github.event_name == 'pull_request' && '/showcase/' || format('{0}/', steps.pages.outputs.base_path) }}
+          PUBLIC_BASE: ${{ github.event_name == 'pull_request' && '/showcase' || steps.pages_enablement.outputs.base_path || steps.pages.outputs.base_path }}
+
+      - name: Build search index visualizer
+        working-directory: search-index-visualizer
+        run: trunk build --release --public-url "${PUBLIC_BASE}/search-index-visualizer/" --dist ../public/search-index-visualizer
+        env:
+          PUBLIC_BASE: ${{ github.event_name == 'pull_request' && '/showcase' || steps.pages_enablement.outputs.base_path || steps.pages.outputs.base_path }}
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: wfc-road-visualizer/dist
+          path: public
 
   deploy:
     if: github.event_name != 'pull_request'

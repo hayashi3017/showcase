@@ -1,2 +1,4 @@
 target/
 wfc-road-visualizer/dist/
+search-index-visualizer/dist/
+public/
