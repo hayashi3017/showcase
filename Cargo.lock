@@ -2473,6 +2473,7 @@ dependencies = [
  "egui",
  "log",
  "wasm-bindgen-futures",
+ "web-time",
 ]
 
 [[package]]

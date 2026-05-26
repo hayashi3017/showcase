@@ -24,10 +24,15 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::time::Instant;
+
+// web_time::Instant は native では std::time::Instant と同等で、
+// wasm32 では performance.now() を使うクロスプラットフォーム実装。
+use web_time::Instant;
 
 use eframe::egui::{self, Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Vec2};
 
+// ネイティブ版エントリポイント（wasm32 ではコンパイル対象外）。
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 820.0]),
@@ -39,6 +44,31 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(|_cc| Ok(Box::new(RaftApp::default()))),
     )
+}
+
+// wasm32 版エントリポイント。Trunk が wasm-bindgen でバインドする。
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use eframe::{wasm_bindgen::JsCast as _, web_sys};
+
+    eframe::WebLogger::init(log::LevelFilter::Info).ok();
+
+    wasm_bindgen_futures::spawn_local(async {
+        let canvas = web_sys::window()
+            .and_then(|window| window.document())
+            .and_then(|document| document.get_element_by_id("raft-consensus-viz"))
+            .and_then(|element| element.dyn_into::<web_sys::HtmlCanvasElement>().ok())
+            .expect("missing #raft-consensus-viz canvas");
+
+        eframe::WebRunner::new()
+            .start(
+                canvas,
+                eframe::WebOptions::default(),
+                Box::new(|_cc| Ok(Box::new(RaftApp::default()))),
+            )
+            .await
+            .expect("failed to start eframe web app");
+    });
 }
 
 // ─── ノードの役割 ──────────────────────────────────────────────────────────────
