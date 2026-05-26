@@ -1,0 +1,12 @@
+[package]
+name = "astar-pathfinding-visualizer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.31"
+egui = "0.31"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+log = "0.4"
+wasm-bindgen-futures = "0.4"
