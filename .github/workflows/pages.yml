@@ -73,6 +73,10 @@ jobs:
         working-directory: search-index-visualizer
         run: trunk build --release --public-url "${PUBLIC_BASE}/search-index-visualizer/" --dist ../public/search-index-visualizer
 
+      - name: Build Raft consensus visualizer
+        working-directory: raft-consensus-viz
+        run: trunk build --release --public-url "${PUBLIC_BASE}/raft-consensus-viz/" --dist ../public/raft-consensus-viz
+
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
