@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "astar-pathfinding-visualizer",
     "cbs-visualizer",
     "raft-consensus-viz",
     "search-index-visualizer",
